@@ -33,6 +33,7 @@ evaluate:
     - name: immutability_enabled
       jsonpath: "$.log_store.immutability_enabled"
       description: The immutability or retention lock setting the log store reports for the audit index, read from its settings API in the same collection run.
+  # Plain English: passes only if every in-scope log source sent at least one event in the window and the log store reports immutability enabled.
   pass_when: >-
     Every value in in_scope_sources is also in reporting_sources, and
     immutability_enabled is exactly true.

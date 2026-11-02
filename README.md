@@ -4,6 +4,19 @@ A sanitized model of how I structure evidence for FedRAMP 20x Key Security Indic
 
 Everything here is derived from the public [FedRAMP Consolidated Rules for 2026](https://www.fedramp.gov/2026/). Nothing from any employer's environment or repositories is included.
 
+**Who this is for:** compliance SMEs who own FedRAMP 20x KSIs, and the engineers they hand checks to.
+
+If you do not write code, start with [docs/handoff-walkthrough.md](docs/handoff-walkthrough.md).
+
+```mermaid
+flowchart TD
+    A[Compliance writes check] ==> B[Engineering writes collector]
+    B ==> C[Scheduler runs collector]
+    C ==> D[Validator gates record]
+    D ==> E[Evidence store keeps it]
+    E == false or null ==> F[Ticket to owner]
+```
+
 ## What is in here
 
 ```
@@ -12,6 +25,7 @@ samples/                          Three records: one pass, one fail, one null
 validate.py                       Validates every record against the schema, prints a table, non-zero exit on bad records
 checks/                           One check definition per KSI, plus the schema for check definitions
 collector.py                      Reference collector: check definition in, one evidence record out
+docs/                             Guides for compliance SMEs: handoff walkthrough, writing a check, glossary, review checklist
 terraform/example.tf              How a record can be emitted straight from Terraform state
 ```
 

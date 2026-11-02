@@ -38,6 +38,7 @@ evaluate:
     - name: permitted_methods
       jsonpath: "$.policies[?(@.in_scope == true)].permitted_methods[*]"
       description: Every authentication method permitted by any in-scope policy, flattened across policies and lowercased.
+  # Plain English: passes only if every sign-in method allowed by any in-scope policy is FIDO2, PIV, or a passkey.
   pass_when: >-
     Every value in permitted_methods is a member of allowed_methods
     {fido2, piv, passkey}. Comparison is exact on lowercased method

@@ -33,6 +33,7 @@ evaluate:
     - name: approved_resource_ids
       jsonpath: "$.change_records[?(@.status == 'approved')].resource_ids[*]"
       description: Resource ids named by change records in approved status whose window covers collected_at.
+  # Plain English: passes only if the cloud API and IaC state list the same resources, apart from differences covered by an approved change record.
   pass_when: >-
     Let D be the symmetric difference between the set of ids in
     cloud_resources and the set of ids in iac_resources. The rule holds when
