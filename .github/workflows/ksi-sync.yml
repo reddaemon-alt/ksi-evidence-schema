@@ -67,6 +67,9 @@ jobs:
 
       - uses: peter-evans/create-pull-request@v8
         with:
+          token: ${{ secrets.KSI_SYNC_TOKEN || github.token }}
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           branch: chore/ksi-sync
           base: main
           title: Sync KSI text with upstream FedRAMP/rules
