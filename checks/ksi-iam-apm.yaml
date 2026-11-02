@@ -1,0 +1,59 @@
+# Check definition for KSI-IAM-APM. Owned by compliance.
+#
+# Rationale placeholders filled by the evaluation step:
+#   policy_count      number of in-scope authentication policies
+#   methods_in_use    labels of the permitted methods actually in use, in
+#                     allowed_methods order, joined with " or "
+#   violation_count   number of in-scope policies permitting a method outside
+#                     allowed_methods
+#   violations        "<policy name> permits <methods>" per violating policy,
+#                     joined with "; "
+#   failure_reason    why collection or evaluation could not complete
+
+ksi_id: KSI-IAM-APM
+statement: "Secure passwordless methods are used for user authentication and authorization when feasible, otherwise strong passwords with phishing-resistant MFA is used."
+class: B
+owner: identity-engineering
+evidence_type: api_query
+
+source:
+  system: identity-provider
+  query: "GET /api/v1/policies?type=authentication ; assert every policy in scope requires FIDO2/WebAuthn or PIV, and no policy permits SMS or TOTP as a sole second factor"
+
+collect:
+  interval: PT24H
+  timeout: PT5M
+
+evaluate:
+  parameters:
+    allowed_methods: [fido2, piv, passkey]
+    method_labels:
+      fido2: FIDO2
+      piv: PIV
+      passkey: passkey
+  extract:
+    - name: in_scope_policies
+      jsonpath: "$.policies[?(@.in_scope == true)]"
+      description: Every authentication policy the identity provider marks as in scope for the authorization boundary.
+    - name: permitted_methods
+      jsonpath: "$.policies[?(@.in_scope == true)].permitted_methods[*]"
+      description: Every authentication method permitted by any in-scope policy, flattened across policies and lowercased.
+  pass_when: >-
+    Every value in permitted_methods is a member of allowed_methods
+    {fido2, piv, passkey}. Comparison is exact on lowercased method
+    identifiers, so an unrecognized identifier fails rather than passes.
+  null_when: >-
+    The fetch errors or exceeds collect.timeout, the response is not the
+    expected shape, in_scope_policies is empty, or any in-scope policy lists
+    no permitted methods. An empty scope is null, never a vacuous pass.
+
+rationale:
+  pass: "All {policy_count} authentication policies in scope enforce phishing-resistant MFA ({methods_in_use}). No exceptions or legacy factors found."
+  fail: "{violation_count} of {policy_count} authentication policies in scope permit methods outside the phishing-resistant set (FIDO2, PIV, passkey): {violations}."
+  "null": "{failure_reason}. No evidence could be gathered. Treated as a finding under VDR-CSO-FAV: a failure of the detection process is itself a vulnerability, not a skipped check."
+
+related_800_53_controls: [
+  "ac-2", "ac-3", "ia-2", "ia-2.1", "ia-2.2", "ia-2.6", "ia-2.8",
+  "ia-5", "ia-5.1", "ia-5.2", "ia-5.6", "ia-5.8", "ia-6",
+  "ia-8", "ia-8.2", "ia-8.4", "sc-23"
+]

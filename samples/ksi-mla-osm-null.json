@@ -1,0 +1,20 @@
+{
+  "ksi_id": "KSI-MLA-OSM",
+  "statement": "A Security Information and Event Management (SIEM) or similar system(s) is used and persistently reviewed for centralized, tamper-resistant logging of events, activities, and changes.",
+  "class": "B",
+  "evidence_type": "log_query",
+  "source": {
+    "system": "siem",
+    "query": "search index=audit earliest=-24h | stats count by sourcetype ; assert every in-scope sourcetype reported events in the window"
+  },
+  "collected_at": "2026-11-01T06:00:00Z",
+  "result": null,
+  "rationale": "SIEM search API returned HTTP 503 for the full collection window. No evidence could be gathered. Treated as a finding under VDR-CSO-FAV: a failure of the detection process is itself a vulnerability, not a skipped check.",
+  "owner": "security-operations",
+  "related_800_53_controls": [
+    "ac-17.1", "ac-20.1", "au-11", "au-12.1", "au-2", "au-3", "au-3.1",
+    "au-4", "au-5", "au-5.1", "au-6.1", "au-6.3", "au-6.4", "au-6.5",
+    "au-7", "au-7.1", "au-8", "au-9", "ir-4.1", "si-4.16", "si-4.2", "si-4.4"
+  ],
+  "next_collection_due": "2026-11-01T12:00:00Z"
+}

@@ -1,0 +1,54 @@
+# Check definition for KSI-PIY-GIV. Owned by compliance.
+#
+# Rationale placeholders filled by the evaluation step:
+#   resource_count    distinct resource ids across both inventories
+#   explained_count   differences covered by an approved change record
+#   drift_summary     unexplained differences grouped by side and resource
+#                     type, for example "Cloud API reports 11 compute
+#                     instances not present in IaC state"
+#   failure_reason    why collection or evaluation could not complete
+
+ksi_id: KSI-PIY-GIV
+statement: "Authoritative sources are used to automatically generate real-time inventories of all information resources when needed."
+class: B
+owner: platform-engineering
+evidence_type: config_export
+
+source:
+  system: asset-inventory
+  query: "diff(inventory_from_cloud_api, inventory_from_iac_state) ; assert zero unexplained resources on either side"
+
+collect:
+  interval: PT24H
+  timeout: PT15M
+
+evaluate:
+  extract:
+    - name: cloud_resources
+      jsonpath: "$.cloud_api.resources[*]"
+      description: Every resource the cloud API reports inside the authorization boundary, each with an id and a type.
+    - name: iac_resources
+      jsonpath: "$.iac_state.resources[*]"
+      description: Every resource declared in IaC state for the same boundary, each with an id and a type.
+    - name: approved_resource_ids
+      jsonpath: "$.change_records[?(@.status == 'approved')].resource_ids[*]"
+      description: Resource ids named by change records in approved status whose window covers collected_at.
+  pass_when: >-
+    Let D be the symmetric difference between the set of ids in
+    cloud_resources and the set of ids in iac_resources. The rule holds when
+    every id in D is also in approved_resource_ids. Equal sets pass with an
+    empty D.
+  null_when: >-
+    The fetch errors or exceeds collect.timeout, either inventory cannot be
+    retrieved, the response is not the expected shape, or both inventories
+    are empty.
+
+rationale:
+  pass: "Cloud API and IaC state agree on all {resource_count} resources. {explained_count} differences are explained by approved change records."
+  fail: "{drift_summary}. No change ticket or exception explains them. Inventory cannot be called authoritative until drift is resolved."
+  "null": "{failure_reason}. No evidence could be gathered. Treated as a finding under VDR-CSO-FAV: a failure of the detection process is itself a vulnerability, not a skipped check."
+
+related_800_53_controls: [
+  "cm-12", "cm-12.1", "cm-2.2", "cm-7.5",
+  "cm-8", "cm-8.1", "cm-8.2", "cm-8.4", "cp-2.8"
+]

@@ -1,0 +1,53 @@
+# Check definition for KSI-MLA-OSM. Owned by compliance.
+#
+# Rationale placeholders filled by the evaluation step:
+#   source_count      number of in-scope log sources
+#   window            the collection window, from parameters.window
+#   fail_summary      silent sources and/or the immutability finding
+#   failure_reason    why collection or evaluation could not complete
+
+ksi_id: KSI-MLA-OSM
+statement: "A Security Information and Event Management (SIEM) or similar system(s) is used and persistently reviewed for centralized, tamper-resistant logging of events, activities, and changes."
+class: B
+owner: security-operations
+evidence_type: log_query
+
+source:
+  system: siem
+  query: "search index=audit earliest=-24h | stats count by sourcetype ; assert every in-scope sourcetype reported events in the window"
+
+collect:
+  interval: PT6H
+  timeout: PT10M
+
+evaluate:
+  parameters:
+    window: 24h
+  extract:
+    - name: in_scope_sources
+      jsonpath: "$.in_scope_sources[*]"
+      description: The log sources the asset inventory lists as in scope for the boundary. The collector joins this list onto the search response.
+    - name: reporting_sources
+      jsonpath: "$.results[?(@.count > 0)].sourcetype"
+      description: Every sourcetype the search returned with a count of at least one event in the window.
+    - name: immutability_enabled
+      jsonpath: "$.log_store.immutability_enabled"
+      description: The immutability or retention lock setting the log store reports for the audit index, read from its settings API in the same collection run.
+  pass_when: >-
+    Every value in in_scope_sources is also in reporting_sources, and
+    immutability_enabled is exactly true.
+  null_when: >-
+    The search or the settings call errors or exceeds collect.timeout, the
+    response is not the expected shape, in_scope_sources is empty, or
+    immutability_enabled is absent.
+
+rationale:
+  pass: "All {source_count} in-scope log sources emitted events in the last {window} and the log store reports immutability enabled."
+  fail: "{fail_summary}. Centralized, tamper-resistant logging cannot be shown for this window."
+  "null": "{failure_reason}. No evidence could be gathered. Treated as a finding under VDR-CSO-FAV: a failure of the detection process is itself a vulnerability, not a skipped check."
+
+related_800_53_controls: [
+  "ac-17.1", "ac-20.1", "au-11", "au-12.1", "au-2", "au-3", "au-3.1",
+  "au-4", "au-5", "au-5.1", "au-6.1", "au-6.3", "au-6.4", "au-6.5",
+  "au-7", "au-7.1", "au-8", "au-9", "ir-4.1", "si-4.16", "si-4.2", "si-4.4"
+]

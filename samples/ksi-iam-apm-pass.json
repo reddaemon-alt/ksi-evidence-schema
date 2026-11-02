@@ -1,0 +1,22 @@
+{
+  "ksi_id": "KSI-IAM-APM",
+  "statement": "Secure passwordless methods are used for user authentication and authorization when feasible, otherwise strong passwords with phishing-resistant MFA is used.",
+  "class": "B",
+  "evidence_type": "api_query",
+  "source": {
+    "system": "identity-provider",
+    "query": "GET /api/v1/policies?type=authentication ; assert every policy in scope requires FIDO2/WebAuthn or PIV, and no policy permits SMS or TOTP as a sole second factor",
+    "artifact_uri": "https://evidence.example.internal/ksi/iam-apm/2026-11-01T0600Z.json",
+    "artifact_sha256": "3b7d9c2f1e4a8b6d5c0f9e8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c"
+  },
+  "collected_at": "2026-11-01T06:00:00Z",
+  "result": true,
+  "rationale": "All 4 authentication policies in scope enforce phishing-resistant MFA (FIDO2 or PIV). No exceptions or legacy factors found.",
+  "owner": "identity-engineering",
+  "related_800_53_controls": [
+    "ac-2", "ac-3", "ia-2", "ia-2.1", "ia-2.2", "ia-2.6", "ia-2.8",
+    "ia-5", "ia-5.1", "ia-5.2", "ia-5.6", "ia-5.8", "ia-6",
+    "ia-8", "ia-8.2", "ia-8.4", "sc-23"
+  ],
+  "next_collection_due": "2026-11-02T06:00:00Z"
+}

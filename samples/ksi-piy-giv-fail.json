@@ -1,0 +1,21 @@
+{
+  "ksi_id": "KSI-PIY-GIV",
+  "statement": "Authoritative sources are used to automatically generate real-time inventories of all information resources when needed.",
+  "class": "B",
+  "evidence_type": "config_export",
+  "source": {
+    "system": "asset-inventory",
+    "query": "diff(inventory_from_cloud_api, inventory_from_iac_state) ; assert zero unexplained resources on either side",
+    "artifact_uri": "https://evidence.example.internal/ksi/piy-giv/2026-11-01T0600Z.diff",
+    "artifact_sha256": "9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a0"
+  },
+  "collected_at": "2026-11-01T06:00:00Z",
+  "result": false,
+  "rationale": "Cloud API reports 11 compute instances not present in IaC state. No change ticket or exception explains them. Inventory cannot be called authoritative until drift is resolved.",
+  "owner": "platform-engineering",
+  "related_800_53_controls": [
+    "cm-12", "cm-12.1", "cm-2.2", "cm-7.5",
+    "cm-8", "cm-8.1", "cm-8.2", "cm-8.4", "cp-2.8"
+  ],
+  "next_collection_due": "2026-11-02T06:00:00Z"
+}

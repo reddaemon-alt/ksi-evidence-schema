@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/reddaemon-alt/ksi-evidence-schema/schema/ksi-evidence.schema.json",
+  "title": "KSI Evidence Record",
+  "description": "One machine-readable evidence record for a single FedRAMP 20x Key Security Indicator (KSI). A record captures where the evidence came from, when it was collected, and a true/false/null validation result. Field semantics follow the public FedRAMP Consolidated Rules for 2026 KSI reference: https://www.fedramp.gov/2026/reference/key-security-indicators/",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ksi_id",
+    "statement",
+    "class",
+    "evidence_type",
+    "source",
+    "collected_at",
+    "result",
+    "owner",
+    "related_800_53_controls"
+  ],
+  "properties": {
+    "ksi_id": {
+      "type": "string",
+      "description": "KSI identifier as published by FedRAMP, for example KSI-IAM-APM.",
+      "pattern": "^KSI-(CED|CMT|CNA|IAM|INR|MLA|PIY|RPL|SCR|SVC)-[A-Z]{3}$"
+    },
+    "statement": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The KSI statement verbatim from fedramp.gov. Kept with the record so a reviewer does not need to cross-reference."
+    },
+    "class": {
+      "type": "string",
+      "description": "FedRAMP 20x authorization class the record is evaluated against. CR26 defines 20x Class A, B and C.",
+      "enum": ["A", "B", "C"]
+    },
+    "evidence_type": {
+      "type": "string",
+      "description": "How the evidence was obtained. Automated types (api_query, config_export, log_query) are preferred. manual is allowed but should be the exception.",
+      "enum": ["api_query", "config_export", "log_query", "manual"]
+    },
+    "source": {
+      "type": "object",
+      "description": "Where the evidence came from. Generic on purpose: no provider-specific identifiers belong here.",
+      "additionalProperties": false,
+      "required": ["system", "query"],
+      "properties": {
+        "system": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Logical name of the system queried, for example identity-provider, iac-state, siem, asset-inventory."
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The query, API call, or export command that produced the evidence, in enough detail to re-run it."
+        },
+        "artifact_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional pointer to the raw evidence artifact (object store, ticket, etc)."
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Optional SHA-256 of the raw artifact so the evidence can be integrity-checked later."
+        }
+      }
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp (UTC) of when the evidence was collected."
+    },
+    "result": {
+      "type": ["boolean", "null"],
+      "description": "true: evidence shows the KSI is met. false: evidence shows it is not met. null: the evidence could not be collected or evaluated. A null result is not a pass and is not neutral; under VDR-CSO-FAV a failure of the detection process is itself a finding."
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short, reviewer-facing explanation of why the result is what it is. Required whenever result is false or null."
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Role or team accountable for this KSI. A role name, not a person."
+    },
+    "related_800_53_controls": {
+      "type": "array",
+      "description": "NIST SP 800-53 Rev 5 control identifiers the KSI maps to, as listed on fedramp.gov. Lowercase, with enhancements written as parent.enhancement (ia-2.1).",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z]{2}-[0-9]{1,2}(\\.[0-9]{1,2})?$"
+      }
+    },
+    "next_collection_due": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional. When the next automated collection is expected. Supports the persistent validation expectation."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "result": { "const": false } }
+      },
+      "then": {
+        "required": ["rationale"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "result": { "const": null } }
+      },
+      "then": {
+        "required": ["rationale"]
+      }
+    }
+  ]
+}

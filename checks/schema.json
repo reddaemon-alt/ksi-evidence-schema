@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/reddaemon-alt/ksi-evidence-schema/checks/schema.json",
+  "title": "KSI Check Definition",
+  "description": "The compliance-owned definition of how one FedRAMP 20x KSI is checked: what to query, how often, how to decide true/false/null, and how to word the result. A collector reads this file and emits KSI evidence records (schema/ksi-evidence.schema.json). Shared fields reuse the evidence schema so a check and the records it produces cannot drift apart.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ksi_id",
+    "statement",
+    "class",
+    "owner",
+    "evidence_type",
+    "source",
+    "collect",
+    "evaluate",
+    "rationale",
+    "related_800_53_controls"
+  ],
+  "$defs": {
+    "duration": {
+      "type": "string",
+      "description": "ISO 8601 duration limited to days, hours, minutes and seconds, for example PT24H or PT5M.",
+      "pattern": "^P(?=\\d|T\\d)(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?(\\d+S)?)?$"
+    }
+  },
+  "properties": {
+    "ksi_id": { "$ref": "../schema/ksi-evidence.schema.json#/properties/ksi_id" },
+    "statement": { "$ref": "../schema/ksi-evidence.schema.json#/properties/statement" },
+    "class": { "$ref": "../schema/ksi-evidence.schema.json#/properties/class" },
+    "owner": { "$ref": "../schema/ksi-evidence.schema.json#/properties/owner" },
+    "evidence_type": { "$ref": "../schema/ksi-evidence.schema.json#/properties/evidence_type" },
+    "source": {
+      "type": "object",
+      "description": "The system to query and the query to run. Copied into every record the check produces.",
+      "additionalProperties": false,
+      "required": ["system", "query"],
+      "properties": {
+        "system": { "$ref": "../schema/ksi-evidence.schema.json#/properties/source/properties/system" },
+        "query": { "$ref": "../schema/ksi-evidence.schema.json#/properties/source/properties/query" }
+      }
+    },
+    "collect": {
+      "type": "object",
+      "description": "Scheduling contract for the collector.",
+      "additionalProperties": false,
+      "required": ["interval", "timeout"],
+      "properties": {
+        "interval": {
+          "$ref": "#/$defs/duration",
+          "description": "How often a record must be produced. next_collection_due on each record is collected_at plus this interval."
+        },
+        "timeout": {
+          "$ref": "#/$defs/duration",
+          "description": "How long the fetch may run before the collector gives up and emits result null."
+        }
+      }
+    },
+    "evaluate": {
+      "type": "object",
+      "description": "How to turn the raw response into true, false or null.",
+      "additionalProperties": false,
+      "required": ["extract", "pass_when", "null_when"],
+      "properties": {
+        "parameters": {
+          "type": "object",
+          "description": "Constants the rule refers to by name, such as an allowed set. Kept here so a change to the interpretation is a reviewed change to this file."
+        },
+        "extract": {
+          "type": "array",
+          "description": "Named values pulled from the response. pass_when refers to these names.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "description"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "jsonpath": {
+                "type": "string",
+                "pattern": "^\\$",
+                "description": "Optional JSONPath into the response. Omit when the value cannot be expressed as a path; the description then has to be precise enough to implement."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Plain statement of what the value is and where it comes from."
+              }
+            }
+          }
+        },
+        "pass_when": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The rule, in terms of the extracted names and parameters, under which result is true. When collection succeeds and this rule does not hold, result is false."
+        },
+        "null_when": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The conditions under which result is null instead of true or false. Collection failure is always one of them."
+        }
+      }
+    },
+    "rationale": {
+      "type": "object",
+      "description": "Reviewer-facing wording for each result. {name} placeholders are filled by the evaluation step. The null template must use {failure_reason}.",
+      "additionalProperties": false,
+      "required": ["pass", "fail", "null"],
+      "properties": {
+        "pass": { "type": "string", "minLength": 1 },
+        "fail": { "type": "string", "minLength": 1 },
+        "null": {
+          "type": "string",
+          "pattern": "\\{failure_reason\\}"
+        }
+      }
+    },
+    "related_800_53_controls": { "$ref": "../schema/ksi-evidence.schema.json#/properties/related_800_53_controls" }
+  }
+}
