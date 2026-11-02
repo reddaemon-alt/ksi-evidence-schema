@@ -20,3 +20,6 @@ jobs:
       - run: python validate.py
       - run: python validate.py --checks
       - run: python collector.py checks/ksi-iam-apm.yaml
+      - run: python tools/sync_ksi.py --check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

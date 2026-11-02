@@ -111,6 +111,14 @@ Change `allowed_factors` to include `"sms"` and the check fails and the record f
 - [FedRAMP Vulnerability Detection and Response rules](https://www.fedramp.gov/2026/reference/vulnerability-detection-and-response/)
 - [FedRAMP Consolidated Rules for 2026](https://www.fedramp.gov/2026/)
 
+### Keeping KSI text current
+
+The `statement` and `related_800_53_controls` fields in `samples/` and `checks/` are synced from the machine-readable rules in [FedRAMP/rules](https://github.com/FedRAMP/rules) (`fedramp-consolidated-rules.json`). `upstream.lock` records the upstream commit they were last synced against.
+
+- CI runs `python tools/sync_ksi.py --check` and fails if our text or control mappings have drifted from upstream.
+- A weekly job (`.github/workflows/ksi-sync.yml`, Mondays 06:00 UTC) runs `tools/sync_ksi.py --write` and opens a PR labeled `upstream-change` when upstream has changed.
+- A human reviews that PR before merging. A changed statement can invalidate a check's `pass_when` rule, so the check logic must be reread against the new text, not just the wording accepted.
+
 ## License
 
 MIT. See `LICENSE`.

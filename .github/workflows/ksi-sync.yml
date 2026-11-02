@@ -1,0 +1,76 @@
+name: ksi-sync
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Record current upstream SHA
+        id: old
+        run: |
+          if [ -f upstream.lock ]; then
+            echo "sha=$(python -c 'import json; print(json.load(open("upstream.lock"))["sha"])')" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=none" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Capture the diff before writing; after --write there is nothing left to show.
+      - name: Diff against upstream
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python tools/sync_ksi.py --diff > "$RUNNER_TEMP/ksi-diff.txt"
+
+      - name: Write upstream text
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python tools/sync_ksi.py --write
+
+      - name: Build PR body
+        id: new
+        env:
+          OLD_SHA: ${{ steps.old.outputs.sha }}
+        run: |
+          NEW_SHA=$(python -c 'import json; print(json.load(open("upstream.lock"))["sha"])')
+          echo "sha=$NEW_SHA" >> "$GITHUB_OUTPUT"
+          {
+            echo "Automated sync of KSI statements and 800-53 control mappings from [FedRAMP/rules](https://github.com/FedRAMP/rules)."
+            echo
+            echo "- Old upstream SHA: \`$OLD_SHA\`"
+            echo "- New upstream SHA: \`$NEW_SHA\`"
+            echo "- Upstream changes: https://github.com/FedRAMP/rules/compare/$OLD_SHA...$NEW_SHA"
+            echo
+            echo "## Diff"
+            echo
+            echo '```diff'
+            head -c 60000 "$RUNNER_TEMP/ksi-diff.txt"
+            echo '```'
+            echo
+            echo "## Reviewer"
+            echo
+            echo "A changed statement may invalidate a check's pass_when rule. Before merging, reread pass_when and null_when in each affected checks/*.yaml against the new statement."
+          } > "$RUNNER_TEMP/pr-body.md"
+
+      - uses: peter-evans/create-pull-request@v8
+        with:
+          branch: chore/ksi-sync
+          base: main
+          title: Sync KSI text with upstream FedRAMP/rules
+          commit-message: Sync KSI text with upstream FedRAMP/rules
+          body-path: ${{ runner.temp }}/pr-body.md
+          labels: upstream-change
+          delete-branch: true
